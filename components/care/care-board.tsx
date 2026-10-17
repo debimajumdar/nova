@@ -5,6 +5,7 @@ import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import { Check, ChevronDown, Link2, Plus, Radio } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PrototypeBadge, ReadinessBar, StatusPill } from "@/components/readiness";
+import { ReviewQueue } from "@/components/care/review-queue";
 import { BARRIER_LABELS, daysUntil, readinessStatus, relativeVisit, visitDate, type ReadinessStatus } from "@/lib/format";
 import { assignPathway, loadCareBoard, resolveBarrier } from "@/lib/queries";
 import type { Barrier, PathwayStep, Patient } from "@/lib/types";
@@ -187,6 +188,8 @@ export function CareBoard() {
         Readiness = weighted share of completed prep steps. &ldquo;Needs attention&rdquo; = any open barrier, or a scan
         within 2 days under 70% ready.
       </p>
+
+      <ReviewQueue patients={board?.patients ?? []} />
     </main>
   );
 }
