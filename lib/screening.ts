@@ -9,11 +9,11 @@ export type ScreenResult = { category: string; response: string };
 
 export const RESPONSES = {
   crisis:
-    "It sounds like you're going through something really hard, and you deserve help right now. If you might hurt yourself or you're in danger, call or text 988 (Suicide & Crisis Lifeline, US) or call 911. Please tell a grown-up you trust, like a parent, teacher, or your care team, right away.",
+    "I can't help with that, but I care about your safety. It sounds like you're going through something really hard, and you deserve help right now. If you might hurt yourself or you're in danger, call or text 988 (Suicide & Crisis Lifeline, US) or call 911. Please tell a grown-up you trust, like a parent, teacher, or your care team, right away.",
   privacy:
-    "Please don't share personal details like names, birthdays, addresses, phone numbers, or ID numbers here. NOVA doesn't collect or store personal information, and it won't repeat it back. Your care team can help with anything about your child's records.",
+    "I can't collect, store, or repeat personal information. Please don't share personal details like names, birthdays, addresses, phone numbers, or ID numbers here. Your care team can help with anything about your child's records.",
   medical:
-    "NOVA can't diagnose, prescribe, or suggest medicines or doses. Please ask your child's doctor or care team. If it's an emergency, call 911.",
+    "I can't diagnose, prescribe, or suggest medicines or doses. Please ask your child's doctor or care team. If it's an emergency, call 911.",
   harmful:
     "I can't help with that. NOVA only helps children and families get ready for medical procedures. If someone is unsafe, please talk to a grown-up you trust.",
   injection:
