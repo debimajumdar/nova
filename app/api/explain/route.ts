@@ -4,7 +4,8 @@ import { EXPLAINABLE_STEPS, LANGUAGES, READING_LEVELS } from "@/lib/explain-opti
 import { PREP_INSTRUCTIONS, SOURCE, UNDERSTAND_MRI } from "@/lib/pathway-content";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-const MODEL = process.env.GEMINI_MODEL ?? "gemini-2.5-flash";
+// 2.5-series models are only served to keys that used them before; new keys need a current model.
+const MODEL = process.env.GEMINI_MODEL || "gemini-3.8-flash";
 
 // The client only picks a step id; the approved text itself never comes from the browser.
 const APPROVED_TEXT: Record<(typeof EXPLAINABLE_STEPS)[number], string[]> = {
@@ -72,8 +73,13 @@ export async function POST(req: Request) {
     return Response.json({ ...explanation.data, source: SOURCE, model: MODEL });
   } catch (error) {
     if (error instanceof ApiError) {
+      console.error(`[explain] Gemini ${error.status} (model ${MODEL}):`, error.message);
       const message =
-        error.status === 429 ? "Too many requests. Try again in a moment." : `AI service error (${error.status}).`;
+        error.status === 429
+          ? "Too many requests. Try again in a moment."
+          : error.status === 404
+            ? `AI model "${MODEL}" isn't available for this key. Check GEMINI_MODEL in .env.local.`
+            : `AI service error (${error.status}).`;
       return Response.json({ error: message }, { status: error.status === 429 ? 429 : 502 });
     }
     if (error instanceof SyntaxError) {
