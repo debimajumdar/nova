@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import { LANGUAGES, READING_LEVELS } from "@/lib/explain-options";
 import { APPROVED_TEXT } from "@/lib/pathway-content";
 import { supabase } from "@/lib/supabase";
-import type { AiRewrite, Patient } from "@/lib/types";
+import type { AiRewrite } from "@/lib/types";
 import { useRealtime } from "@/lib/use-realtime";
+import { cn } from "@/lib/utils";
 
 const STEP_TITLES: Record<string, string> = {
   "understand-mri": "Understand the MRI",
@@ -15,7 +16,7 @@ const STEP_TITLES: Record<string, string> = {
 };
 
 // Human oversight for AI content: nothing the model writes reaches a family until someone here approves it.
-export function ReviewQueue({ patients }: { patients: Patient[] }) {
+export function ReviewQueue() {
   const [items, setItems] = useState<AiRewrite[]>([]);
   const [error, setError] = useState<string | null>(null);
 
@@ -72,7 +73,7 @@ export function ReviewQueue({ patients }: { patients: Patient[] }) {
 
       <div className="mt-4 space-y-4">
         {pending.map((item) => (
-          <ReviewCard key={item.id} item={item} patients={patients} onDecide={decide} />
+          <ReviewCard key={item.id} item={item} onDecide={decide} />
         ))}
       </div>
 
@@ -96,12 +97,11 @@ export function ReviewQueue({ patients }: { patients: Patient[] }) {
 
 function ReviewCard(props: {
   item: AiRewrite;
-  patients: Patient[];
   onDecide: (id: string, decision: "approved" | "rejected") => Promise<void>;
 }) {
   const { item } = props;
   const [busy, setBusy] = useState(false);
-  const requester = props.patients.find((p) => p.id === item.requested_by_patient);
+  const [view, setView] = useState<"draft" | "back">("draft");
   const source = APPROVED_TEXT[item.step_key as keyof typeof APPROVED_TEXT] ?? [];
 
   const decide = async (d: "approved" | "rejected") => {
@@ -117,7 +117,7 @@ function ReviewCard(props: {
           {STEP_TITLES[item.step_key]} · {label(LANGUAGES, item.language)} · {label(READING_LEVELS, item.reading_level)}
         </h3>
         <span className="text-xs text-muted-foreground">
-          {requester ? `Requested by ${requester.guardian_name} (${requester.display_name})` : "Requested"} ·{" "}
+          Requested from a family link (not linked to the patient) ·{" "}
           {new Date(item.created_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })} · {item.model}
         </span>
       </header>
@@ -132,12 +132,40 @@ function ReviewCard(props: {
           </div>
         </div>
         <div>
-          <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">AI draft</h4>
-          <div className="mt-2 space-y-2 rounded-lg bg-muted p-3 text-sm leading-relaxed" lang={item.language}>
-            {(item.paragraphs ?? []).map((p) => (
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">AI draft</h4>
+            {item.back_translation && (
+              <div role="group" aria-label="Draft view" className="flex rounded-lg border p-0.5 text-xs">
+                {(["draft", "back"] as const).map((v) => (
+                  <button
+                    key={v}
+                    aria-pressed={view === v}
+                    onClick={() => setView(v)}
+                    className={cn(
+                      "rounded-md px-2 py-1 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none",
+                      view === v && "bg-accent font-bold text-accent-foreground",
+                    )}
+                  >
+                    {v === "draft" ? label(LANGUAGES, item.language) : "Back to English"}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <div
+            className="mt-2 space-y-2 rounded-lg bg-muted p-3 text-sm leading-relaxed"
+            lang={view === "back" ? "en" : item.language}
+          >
+            {((view === "back" ? item.back_translation : item.paragraphs) ?? []).map((p) => (
               <p key={p}>{p}</p>
             ))}
           </div>
+          {view === "back" && (
+            <p className="mt-2 text-xs text-muted-foreground">
+              Literal AI back-translation, so you can compare meaning with the source. Doesn&apos;t replace a
+              qualified medical interpreter.
+            </p>
+          )}
         </div>
       </div>
 

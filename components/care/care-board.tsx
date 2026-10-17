@@ -189,7 +189,7 @@ export function CareBoard() {
         within 2 days under 70% ready.
       </p>
 
-      <ReviewQueue patients={board?.patients ?? []} />
+      <ReviewQueue />
     </main>
   );
 }

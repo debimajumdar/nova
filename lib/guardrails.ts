@@ -32,3 +32,28 @@ export function checkRewrite(source: string[], paragraphs: string[]): GuardrailR
 
   return { ok: failures.length === 0, failures };
 }
+
+// Clinical-safety checks on English text: the draft itself, or the literal back-translation of a non-English
+// draft. This lets one set of English rules cover every language.
+// Addresses VEYZL HIPAA / clinical-safety finding: no definitive diagnosis or dosage; always direct to a clinician.
+const CLINICAL_RED_FLAGS: { re: RegExp; reason: string }[] = [
+  { re: /\bdiagnos/i, reason: "Mentions a diagnosis" },
+  { re: /\b(dose|dosage|mg|mcg|milligrams?|millilit(er|re)s?|ml)\b/i, reason: "Mentions a dose or dosage" },
+  { re: /\bprescri/i, reason: "Mentions prescribing" },
+  { re: /\b(stop|skip) (taking|giving)\b/i, reason: "Tells the family to stop or skip a treatment" },
+  { re: /\b(guarantee|no risk|risk-free|completely safe|100% safe)\b/i, reason: "Makes a safety guarantee" },
+];
+const CLINICIAN_REFERENCE = /\b(care team|medical team|health ?care team|doctors?|nurses?|clinicians?|hospital staff)\b/i;
+
+export function checkClinicalSafety(source: string[], englishText: string[] | null): GuardrailResult {
+  if (!englishText) {
+    return { ok: false, failures: ["Couldn't verify the meaning (no English back-translation available)"] };
+  }
+  const text = englishText.join("\n");
+  const failures = CLINICAL_RED_FLAGS.filter(({ re }) => re.test(text)).map(({ reason }) => reason);
+  // If the approved text tells families to follow their care team, the rewrite must keep that.
+  if (CLINICIAN_REFERENCE.test(source.join("\n")) && !CLINICIAN_REFERENCE.test(text)) {
+    failures.push("Dropped the instruction to follow the care team");
+  }
+  return { ok: failures.length === 0, failures };
+}

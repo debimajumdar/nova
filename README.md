@@ -38,7 +38,7 @@ The first pathway is **pediatric MRI**. Children who aren't prepared are more li
 
 **Guardrails in the prompt:** use only facts in the approved text; keep every safety instruction and every "follow your care team" statement; no diagnosis or outcome predictions; list anything that couldn't be expressed faithfully.
 
-**Human oversight:** AI drafts are never shown to families directly. Each new draft is stored as `pending` and appears in PULSE's **AI content review** queue next to the approved English source. Families see a version only after a clinician approves it, labeled with who approved it and when. Approvals are tied to a hash of the source text, so editing the source invalidates old approvals.
+**Human oversight:** AI drafts are never shown to families directly. Each new draft is stored as `pending` and appears in PULSE's **AI content review** queue next to the approved English source. Families see a version only after a clinician approves it, labeled with who approved it and when. Approvals are tied to a hash of the source text, so editing the source invalidates old approvals. For non-English drafts, reviewers can switch to a literal English back-translation to check the meaning against the source, even if they don't read the target language.
 
 **Output guardrails** (`lib/guardrails.ts`): Gemini safety filters at `BLOCK_LOW_AND_ABOVE`, JSON schema validation, then deterministic, language-independent checks. A draft is blocked if it contains any number not in the source (catches fabricated doses or durations), links, emails, phone numbers, or markup, or is far longer than the source. Blocked drafts are logged and never shown.
 
@@ -61,6 +61,8 @@ The VEYZL repository analysis (Healthcare profile, Generative task) flagged the 
 | EU AI Act Art. 15 (output guardrails, reduce fabrication); OECD robustness & safety | Gemini safety filters, plus deterministic checks that block invented numbers, links, and contact details |
 | Google SAIF (isolate untrusted input, resist prompt injection) | Prompt input is limited to server-side approved text and enum choices; the system prompt treats source text as content, not instructions |
 | Signed audit evidence / traceability | Every generation and review decision is logged in `ai_rewrites`; browsers can't write to it |
+| HIPAA clinical safety (no definitive diagnosis or dosage; direct families to a clinician) | Every draft's English meaning (the draft itself, or a literal back-translation) is checked: mentions of diagnosis, doses, prescribing, stopping treatment, or safety guarantees are blocked, and so is any draft that drops the "follow your care team" instruction |
+| GDPR Art. 5 data minimisation; HIPAA PHI in logs | AI requests no longer carry any patient identifier. Translations are shared content reviewed once, so the AI log doesn't record which family asked. No patient data is ever sent to the model |
 | Biometric consent (BIPA / EU AI Act) and COPPA (children's data) | The statue-game camera now requires a guardian consent step that explains it's motion-only: no face recognition, no recording, nothing leaves the device |
 
 ## Data and security (prototype)
@@ -90,7 +92,7 @@ Add the server-only secret key (Supabase → Project Settings → API Keys → S
 SUPABASE_SECRET_KEY=...
 ```
 
-Run `supabase/schema.sql`, then `supabase/seed.sql`, then `supabase/002_ai_review.sql`, in the Supabase SQL editor. Then:
+Run `supabase/schema.sql`, then `supabase/seed.sql`, then `supabase/002_ai_review.sql`, then `supabase/003_back_translation.sql`, in the Supabase SQL editor. Then:
 
 ```bash
 npm run dev
