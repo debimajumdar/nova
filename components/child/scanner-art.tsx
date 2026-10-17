@@ -5,9 +5,9 @@ import { motion } from "framer-motion";
 // A friendly MRI scanner. The bed (with a small child on it) slides into the tunnel when bedIn is true.
 export function ScannerArt({ bedIn, active = false }: { bedIn: boolean; active?: boolean }) {
   return (
-    <svg viewBox="0 0 320 190" role="img" aria-label="An MRI scanner shaped like a big donut, with a bed that slides into the tunnel" className="w-full max-w-md">
+    <svg viewBox="-40 0 340 190" role="img" aria-label="An MRI scanner shaped like a big donut, with a bed that slides into the tunnel" className="w-full max-w-md">
       {/* floor shadow */}
-      <ellipse cx="170" cy="176" rx="130" ry="8" className="fill-muted" />
+      <ellipse cx="140" cy="176" rx="150" ry="8" className="fill-muted" />
 
       {/* scanner body */}
       <rect x="100" y="20" width="140" height="150" rx="44" className="fill-card stroke-border" strokeWidth="3" />
@@ -34,10 +34,10 @@ export function ScannerArt({ bedIn, active = false }: { bedIn: boolean; active?:
       <rect x="20" y="128" width="90" height="38" rx="8" className="fill-card stroke-border" strokeWidth="3" />
 
       {/* bed + child, slides into the tunnel */}
-      <motion.g animate={{ x: bedIn ? 92 : 0 }} transition={{ type: "spring", stiffness: 40, damping: 14 }}>
-        <rect x="12" y="112" width="150" height="14" rx="7" className="fill-card stroke-border" strokeWidth="3" />
+      <motion.g animate={{ x: bedIn ? 34 : -56 }} transition={{ type: "spring", stiffness: 40, damping: 14 }}>
+        <rect x="40" y="112" width="122" height="14" rx="7" className="fill-card stroke-border" strokeWidth="3" />
         {/* blanket */}
-        <rect x="52" y="100" width="70" height="14" rx="7" className="fill-track-fill" />
+        <rect x="66" y="100" width="58" height="14" rx="7" className="fill-track-fill" />
         {/* head on pillow */}
         <rect x="124" y="104" width="30" height="10" rx="5" className="fill-muted" />
         <circle cx="136" cy="98" r="10" className="fill-attention-soft stroke-border" strokeWidth="2" />

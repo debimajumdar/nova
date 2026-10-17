@@ -33,7 +33,6 @@ export function CareBoard() {
   const refresh = useCallback(async () => {
     try {
       setBoard(await loadCareBoard());
-      setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     }
@@ -116,7 +115,10 @@ export function CareBoard() {
 
       {error && (
         <p role="alert" className="mt-6 rounded-lg bg-attention-soft p-4 text-sm text-attention-ink">
-          Couldn&apos;t load data: {error}. Check .env.local and that schema.sql and seed.sql ran in Supabase.
+          {error}{" "}
+          <button className="underline" onClick={() => setError(null)}>
+            Dismiss
+          </button>
         </p>
       )}
 
@@ -149,17 +151,29 @@ export function CareBoard() {
                   expanded={expanded === row.patient.id}
                   onToggle={() => setExpanded((id) => (id === row.patient.id ? null : row.patient.id))}
                   onAssign={async () => {
-                    await assignPathway(row.patient.id);
+                    try {
+                      await assignPathway(row.patient.id);
+                    } catch (e) {
+                      setError(`Couldn't assign: ${e instanceof Error ? e.message : String(e)}`);
+                    }
                     refresh();
                   }}
                 />
                 {expanded === row.patient.id && board && (
                   <tr className="border-b bg-muted/40">
                     <td colSpan={6} className="px-4 py-5">
-                      <PatientDetail row={row} steps={board.steps} onResolve={async (id) => {
-                        await resolveBarrier(id);
-                        refresh();
-                      }} />
+                      <PatientDetail
+                        row={row}
+                        steps={board.steps}
+                        onResolve={async (id) => {
+                          try {
+                            await resolveBarrier(id);
+                          } catch (e) {
+                            setError(`Couldn't resolve: ${e instanceof Error ? e.message : String(e)}`);
+                          }
+                          refresh();
+                        }}
+                      />
                     </td>
                   </tr>
                 )}

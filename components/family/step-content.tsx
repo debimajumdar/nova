@@ -4,7 +4,10 @@ import { useState } from "react";
 import { Check, ExternalLink, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Explainer } from "@/components/family/explainer";
-import { CHILD_TEXT, PREP_INSTRUCTIONS, SAFETY_SCREENING, SOURCE, UNDERSTAND_MRI } from "@/lib/pathway-content";
+import { MeetScanner } from "@/components/child/meet-scanner";
+import { SoundPractice } from "@/components/child/sound-practice";
+import { StillnessGame } from "@/components/child/stillness-game";
+import { PREP_INSTRUCTIONS, SAFETY_SCREENING, SOURCE, UNDERSTAND_MRI } from "@/lib/pathway-content";
 import { visitDate } from "@/lib/format";
 import type { BarrierKind, PathwayStep, Patient } from "@/lib/types";
 
@@ -21,10 +24,12 @@ export function StepContent(props: Props) {
   const { step } = props;
 
   if (step.audience === "child") {
+    const name = props.patient.display_name.split(" ")[0];
     return (
       <Body done={props.done} onUndo={props.onUndo}>
-        <Paragraphs items={CHILD_TEXT[step.key] ?? []} large />
-        <DoneButton {...props} label="I did it!" />
+        {step.key === "meet-scanner" && <MeetScanner name={name} done={props.done} onComplete={props.onComplete} />}
+        {step.key === "sound-practice" && <SoundPractice done={props.done} onComplete={props.onComplete} />}
+        {step.key === "stillness-practice" && <StillnessGame done={props.done} onComplete={props.onComplete} />}
       </Body>
     );
   }
