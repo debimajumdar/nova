@@ -32,9 +32,3 @@ export const PREP_INSTRUCTIONS = [
   "Bring a comfort item without metal, like a soft toy or blanket.",
   "Dress your child in comfortable clothes without metal.",
 ];
-
-// Content the AI may rewrite, keyed by pathway step. The server looks text up here; the browser never sends it.
-export const APPROVED_TEXT: Record<"understand-mri" | "prep-instructions", string[]> = {
-  "understand-mri": UNDERSTAND_MRI,
-  "prep-instructions": PREP_INSTRUCTIONS,
-};

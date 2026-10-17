@@ -16,9 +16,7 @@ export function StillnessGame({ done, onComplete }: { done: boolean; onComplete:
   const [rawPhase, setPhase] = useState<Phase>("ready");
   const [seconds, setSeconds] = useState(0);
   const [withSounds, setWithSounds] = useState(true);
-  // Camera is opt-in behind a guardian consent step (child-directed product; motion only, no biometrics).
   const [useCamera, setUseCamera] = useState(false);
-  const [askingConsent, setAskingConsent] = useState(false);
   const sound = useRef<SoundHandle | null>(null);
   const soundLoop = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -150,45 +148,17 @@ export function StillnessGame({ done, onComplete }: { done: boolean; onComplete:
           />
           Play quiet MRI sounds while practicing
         </label>
-        {useCamera ? (
-          <Button variant="outline" size="sm" onClick={() => setUseCamera(false)}>
-            <CameraOff /> Turn camera off
-          </Button>
-        ) : (
-          !askingConsent && (
-            <Button variant="outline" size="sm" onClick={() => setAskingConsent(true)}>
-              <Camera /> Use the camera to spot wiggles
-            </Button>
-          )
-        )}
+        <label className="flex cursor-pointer items-center gap-2">
+          <input
+            type="checkbox"
+            className="size-5 accent-[var(--primary)]"
+            checked={useCamera}
+            onChange={(e) => setUseCamera(e.target.checked)}
+          />
+          {useCamera ? <Camera className="size-4" /> : <CameraOff className="size-4" />}
+          Use the camera to spot wiggles (stays on this device)
+        </label>
       </div>
-
-      {askingConsent && !useCamera && (
-        <div role="dialog" aria-labelledby="camera-consent-title" className="rounded-2xl border-2 border-primary/40 bg-card p-5">
-          <h3 id="camera-consent-title" className="font-bold">
-            For grown-ups: turn on the wiggle camera?
-          </h3>
-          <ul className="mt-2 list-disc space-y-1 pl-5 text-sm">
-            <li>The camera only measures how much the picture changes, to notice movement.</li>
-            <li>It does not recognize faces or identify anyone.</li>
-            <li>Nothing is recorded, saved, or sent anywhere. It all stays on this device.</li>
-            <li>You can turn it off at any time.</li>
-          </ul>
-          <div className="mt-4 flex flex-wrap gap-2">
-            <Button
-              onClick={() => {
-                setUseCamera(true);
-                setAskingConsent(false);
-              }}
-            >
-              <Camera /> I&apos;m a grown-up. Turn it on
-            </Button>
-            <Button variant="outline" onClick={() => setAskingConsent(false)}>
-              No thanks
-            </Button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
