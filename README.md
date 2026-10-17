@@ -38,14 +38,30 @@ The first pathway is **pediatric MRI**. Children who aren't prepared are more li
 
 **Guardrails in the prompt:** use only facts in the approved text; keep every safety instruction and every "follow your care team" statement; no diagnosis or outcome predictions; list anything that couldn't be expressed faithfully.
 
-**Output handling:** responses that fail schema validation are dropped and the family is told the original text is correct. Every AI output is labeled as AI-rewritten with a link to the source.
+**Human oversight:** AI drafts are never shown to families directly. Each new draft is stored as `pending` and appears in PULSE's **AI content review** queue next to the approved English source. Families see a version only after a clinician approves it, labeled with who approved it and when. Approvals are tied to a hash of the source text, so editing the source invalidates old approvals.
+
+**Output guardrails** (`lib/guardrails.ts`): Gemini safety filters at `BLOCK_LOW_AND_ABOVE`, JSON schema validation, then deterministic, language-independent checks. A draft is blocked if it contains any number not in the source (catches fabricated doses or durations), links, emails, phone numbers, or markup, or is far longer than the source. Blocked drafts are logged and never shown.
+
+**Traceability:** every generation is recorded in `ai_rewrites`: step, language, reading level, model, source hash, output, guardrail results, requester, reviewer, and timestamps. Browsers can read this table but not write to it. Inserts and approvals go through server routes that use the Supabase secret key.
 
 **Out of scope:** the AI doesn't diagnose, triage, schedule, or decide readiness. There's no open-ended chat.
 
 **Known gaps (prototype):**
-- AI-rewritten text is shown to families without review by a clinician.
-- No automated check that translations preserve meaning.
-- No logging or audit trail of what was generated and shown.
+- The reviewer is a fixed demo identity; production needs authenticated clinician accounts and role-based access.
+- Guardrails check structure and facts like numbers, not full meaning; human review is the backstop.
+- No automated evaluation suite in CI yet (planned: score rewrites against reference facts on every PR).
+
+## Changes made because of the VEYZL audit
+
+The VEYZL repository analysis (Healthcare profile, Generative task) flagged the controls below. Each one changed the build:
+
+| VEYZL finding | What we changed |
+|---|---|
+| EU AI Act transparency & human oversight; deployment approval workflow recommended | AI drafts now require clinician approval in PULSE before any family sees them |
+| EU AI Act Art. 15 (output guardrails, reduce fabrication); OECD robustness & safety | Gemini safety filters, plus deterministic checks that block invented numbers, links, and contact details |
+| Google SAIF (isolate untrusted input, resist prompt injection) | Prompt input is limited to server-side approved text and enum choices; the system prompt treats source text as content, not instructions |
+| Signed audit evidence / traceability | Every generation and review decision is logged in `ai_rewrites`; browsers can't write to it |
+| Biometric consent (BIPA / EU AI Act) and COPPA (children's data) | The statue-game camera now requires a guardian consent step that explains it's motion-only: no face recognition, no recording, nothing leaves the device |
 
 ## Data and security (prototype)
 
@@ -68,7 +84,13 @@ GEMINI_API_KEY=...
 GEMINI_MODEL=gemini-3.8-flash
 ```
 
-Run `supabase/schema.sql`, then `supabase/seed.sql`, in the Supabase SQL editor. Then:
+Add the server-only secret key (Supabase → Project Settings → API Keys → Secret key):
+
+```
+SUPABASE_SECRET_KEY=...
+```
+
+Run `supabase/schema.sql`, then `supabase/seed.sql`, then `supabase/002_ai_review.sql`, in the Supabase SQL editor. Then:
 
 ```bash
 npm run dev

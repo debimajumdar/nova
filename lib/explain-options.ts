@@ -19,3 +19,14 @@ export const LANGUAGES = [
 
 export type ReadingLevelValue = (typeof READING_LEVELS)[number]["value"];
 export type LanguageValue = (typeof LANGUAGES)[number]["value"];
+
+export type ExplainResponse =
+  | {
+      status: "approved";
+      paragraphs: string[];
+      reviewedBy: string;
+      reviewedAt: string;
+      source: { label: string; url: string };
+    }
+  | { status: "pending" }
+  | { status: "blocked" };

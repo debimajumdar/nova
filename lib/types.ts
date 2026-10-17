@@ -58,3 +58,21 @@ export type Readiness = {
   total_weight: number;
   readiness_pct: number;
 };
+
+export type AiRewrite = {
+  id: string;
+  step_key: string;
+  reading_level: string;
+  language: string;
+  source_hash: string;
+  model: string;
+  paragraphs: string[] | null;
+  omitted_or_uncertain: string[];
+  guardrail_failures: string[];
+  status: "pending" | "approved" | "rejected" | "blocked";
+  requested_by_patient: string | null;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  review_note: string | null;
+  created_at: string;
+};
