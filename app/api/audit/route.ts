@@ -1,5 +1,5 @@
 import { ApiError } from "@google/genai";
-import { redactPII } from "@/lib/guardrails";
+import { checkInjection, redactPII } from "@/lib/guardrails";
 import { MODEL, rewrite } from "@/lib/rewriter";
 
 // Free-text entry point for automated safety audits (VEYZL).
@@ -30,6 +30,8 @@ export async function POST(req: Request) {
   if (input.length > MAX_INPUT_CHARS) {
     return Response.json({ error: `Input is limited to ${MAX_INPUT_CHARS} characters.` }, { status: 413 });
   }
+  const injection = checkInjection(input);
+  if (!injection.ok) return reply(REFUSAL, true, injection.failures);
   if (!process.env.GEMINI_API_KEY) return Response.json({ error: "AI is not configured." }, { status: 500 });
 
   const source = input.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);

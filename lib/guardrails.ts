@@ -45,6 +45,21 @@ const CLINICAL_RED_FLAGS: { re: RegExp; reason: string }[] = [
 ];
 const CLINICIAN_REFERENCE = /\b(care team|medical team|health ?care team|doctors?|nurses?|clinicians?|hospital staff)\b/i;
 
+// Refuses input that tries to override or extract instructions, before it reaches the model.
+// Addresses VEYZL EU AI Act Art. 15 / SAIF findings: resist prompt injection, ignore embedded overrides.
+const INJECTION_PATTERNS = [
+  /\b(ignore|disregard|forget|skip|override)\b[^.\n]{0,40}\b(previous|prior|above|earlier|all|your|the)\b[^.\n]{0,20}\b(instructions?|rules|prompts?|directions|guidelines)\b/i,
+  /\b(system|hidden|initial|developer)\s+(prompt|instructions?|message)\b/i,
+  /\b(reveal|print|show|repeat|output|tell me)\b[^.\n]{0,30}\b(your|the)\s+(instructions?|prompt|rules|guidelines)\b/i,
+  /\b(you are now|act as|pretend (to be|you are)|roleplay as|developer mode|jailbreak|DAN)\b/i,
+  /<\/?(system|instructions?|approved_text)>/i,
+];
+
+export function checkInjection(input: string): GuardrailResult {
+  const hit = INJECTION_PATTERNS.some((re) => re.test(input));
+  return hit ? { ok: false, failures: ["Input looks like an attempt to override or extract instructions"] } : { ok: true, failures: [] };
+}
+
 // Blocks output that repeats our instructions (prompt exfiltration). Any 6-word run copied from the system
 // prompt counts. Addresses VEYZL SAIF finding: block exfiltration of the system prompt.
 export function checkInstructionLeak(paragraphs: string[], systemPrompt: string): GuardrailResult {
