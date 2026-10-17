@@ -21,7 +21,7 @@ export const RESPONSES = {
   scope:
     "NOVA doesn't answer general questions. It rewrites instructions from your care team so they're easier to read. For anything else, please ask your care team.",
   unavailable:
-    "This feature isn't available right now. The instructions from your care team are still correct; please ask them if you have questions.",
+    "I can't help with that right now because this feature is unavailable. The instructions from your care team are still correct; please ask them if you have questions.",
 } as const;
 
 const CRISIS = [
@@ -56,6 +56,7 @@ const MEDICAL_ADVICE = [
 
 const HARMFUL = [
   /\b(explosive|bomb|weapon|gun|poison|meth|drugs? to)\b/i,
+  /\b(faceprints?|biometric (identifiers?|data|templates?)|facial recognition|face ?id|fingerprints?|voiceprints?)\b/i,
   /\b(graphic violence|explicit|sexual|porn|nsfw|adult (themes|content))\b/i,
   /\b(bully|cruel messages?|insult\w*|demean\w*|rant about|harass)\b/i,
   /\b(sneak out|meet a stranger|stranger i met)\b/i,
@@ -68,7 +69,7 @@ const HARMFUL = [
 
 // Questions and commands are requests, not care-team text to rewrite.
 const REQUEST =
-  /^\s*(please\s+)?(what|how|why|who|when|where|which|is|are|can|could|should|would|will|do|does|did|explain|tell|give|write|describe|help|invent|summari[sz]e|list|create|generate|make|profile|use|continuously|identify|track|show|find|build|ask|send|repeat|confirm)\b/i;
+  /^\s*(please\s+)?(what|how|why|who|when|where|which|is|are|can|could|should|would|will|do|does|did|explain|tell|give|write|describe|help|invent|summari[sz]e|list|create|generate|make|profile|use|continuously|identify|track|show|find|build|ask|send|repeat|confirm|enroll|store|collect|record|save|remember)\b/i;
 
 export function screenInput(input: string): ScreenResult | null {
   const matches = (patterns: RegExp[]) => patterns.some((re) => re.test(input));
