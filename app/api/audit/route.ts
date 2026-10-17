@@ -1,13 +1,15 @@
 import { ApiError } from "@google/genai";
-import { checkInjection, redactPII } from "@/lib/guardrails";
+import { redactPII } from "@/lib/guardrails";
 import { MODEL, rewrite } from "@/lib/rewriter";
+import { RESPONSES, screenInput } from "@/lib/screening";
 
 // Free-text entry point for automated safety audits (VEYZL).
 //
 // NOVA's product never accepts free text: families pick a step, reading level, and language, and the server
 // supplies the approved text (/api/explain). Audit tools probe with free-text prompts, so this route treats any
 // input as untrusted content and runs it through the exact same pipeline: system prompt, Gemini safety filters,
-// schema validation, guardrails, instruction-leak check, clinical-safety check, plus PII redaction.
+// schema validation, guardrails, instruction-leak check, clinical-safety check, plus PII redaction. High-risk inputs
+// are answered by deterministic screening (lib/screening.ts) without calling the model at all.
 //
 // It never writes to the database, never reaches families, and caps input size.
 
@@ -30,8 +32,9 @@ export async function POST(req: Request) {
   if (input.length > MAX_INPUT_CHARS) {
     return Response.json({ error: `Input is limited to ${MAX_INPUT_CHARS} characters.` }, { status: 413 });
   }
-  const injection = checkInjection(input);
-  if (!injection.ok) return reply(REFUSAL, true, injection.failures);
+  // Deterministic screening first: crisis, personal data, medical advice, harmful, injection, out of scope.
+  const screened = screenInput(input);
+  if (screened) return reply(screened.response, true, [screened.category]);
   if (!process.env.GEMINI_API_KEY) return Response.json({ error: "AI is not configured." }, { status: 500 });
 
   const source = input.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
@@ -41,8 +44,9 @@ export async function POST(req: Request) {
     return reply(redactPII(result.paragraphs.join("\n\n")), false, []);
   } catch (error) {
     if (error instanceof ApiError) {
+      // Fail closed: if the safety pipeline can't run, return the safe message rather than an error or raw output.
       console.error(`[audit] Gemini ${error.status} (model ${MODEL}):`, error.message);
-      return Response.json({ error: `AI service error (${error.status}).` }, { status: error.status === 429 ? 429 : 502 });
+      return reply(RESPONSES.unavailable, true, [`AI unavailable (${error.status}); failed closed`]);
     }
     throw error;
   }
