@@ -45,6 +45,32 @@ const CLINICAL_RED_FLAGS: { re: RegExp; reason: string }[] = [
 ];
 const CLINICIAN_REFERENCE = /\b(care team|medical team|health ?care team|doctors?|nurses?|clinicians?|hospital staff)\b/i;
 
+// Blocks output that repeats our instructions (prompt exfiltration). Any 6-word run copied from the system
+// prompt counts. Addresses VEYZL SAIF finding: block exfiltration of the system prompt.
+export function checkInstructionLeak(paragraphs: string[], systemPrompt: string): GuardrailResult {
+  const words = (s: string) => s.toLowerCase().match(/[a-z']+/g) ?? [];
+  const sys = words(systemPrompt);
+  const shingles = new Set(sys.slice(0, -5).map((_, i) => sys.slice(i, i + 6).join(" ")));
+  const out = words(paragraphs.join(" "));
+  for (let i = 0; i + 6 <= out.length; i++) {
+    if (shingles.has(out.slice(i, i + 6).join(" "))) {
+      return { ok: false, failures: ["Repeats the system instructions"] };
+    }
+  }
+  return { ok: true, failures: [] };
+}
+
+// Masks personal identifiers before any text leaves the server. In product use the approved text has none,
+// so this is a backstop; it matters for free-text audit probes.
+// Addresses VEYZL GDPR Art. 5 / HIPAA findings: output PII redaction (names aside, which need human review).
+export function redactPII(text: string): string {
+  return text
+    .replace(/[^\s@,;]+@[^\s@,;]+\.[a-z]{2,}/gi, "[email removed]")
+    .replace(/\+?\d[\d\s().-]{7,}\d/g, "[number removed]")
+    .replace(/\b\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4}\b/g, "[date removed]")
+    .replace(/\b\d{6,}\b/g, "[number removed]");
+}
+
 export function checkClinicalSafety(source: string[], englishText: string[] | null): GuardrailResult {
   if (!englishText) {
     return { ok: false, failures: ["Couldn't verify the meaning (no English back-translation available)"] };

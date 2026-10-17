@@ -63,6 +63,9 @@ The VEYZL repository analysis (Healthcare profile, Generative task) flagged the 
 | Signed audit evidence / traceability | Every generation and review decision is logged in `ai_rewrites`; browsers can't write to it |
 | HIPAA clinical safety (no definitive diagnosis or dosage; direct families to a clinician) | Every draft's English meaning (the draft itself, or a literal back-translation) is checked: mentions of diagnosis, doses, prescribing, stopping treatment, or safety guarantees are blocked, and so is any draft that drops the "follow your care team" instruction |
 | GDPR Art. 5 data minimisation; HIPAA PHI in logs | AI requests no longer carry any patient identifier. Translations are shared content reviewed once, so the AI log doesn't record which family asked. No patient data is ever sent to the model |
+| Google SAIF: block exfiltration of the system prompt | Any output that copies a 6-word run from the system instructions is blocked |
+| GDPR Art. 5: output PII redaction | Emails, phone numbers, dates, and long ID numbers are masked in every audit-path output |
+| VEYZL hosted audit needs a free-text route | Added `POST /api/audit`: free-text probes go through the exact same pipeline (prompt, filters, guardrails, clinical checks) plus PII redaction, with no database writes and a 2,000-character cap. Blocked probes get a safe refusal that points to the care team |
 | Biometric consent (BIPA / EU AI Act) and COPPA (children's data) | The statue-game camera now requires a guardian consent step that explains it's motion-only: no face recognition, no recording, nothing leaves the device |
 
 ## Data and security (prototype)
