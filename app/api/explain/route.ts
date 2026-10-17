@@ -81,7 +81,7 @@ export async function POST(req: Request) {
     reading_level: readingLevel,
     language,
     source_hash: sourceHash,
-    model: MODEL,
+    model: result.model,
     paragraphs: paragraphs.length ? paragraphs : null,
     omitted_or_uncertain: omitted,
     back_translation: backTranslation,

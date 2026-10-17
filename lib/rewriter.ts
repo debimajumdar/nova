@@ -1,4 +1,4 @@
-import { GoogleGenAI, HarmBlockThreshold, HarmCategory } from "@google/genai";
+import { ApiError, GoogleGenAI, HarmBlockThreshold, HarmCategory, type GenerateContentParameters } from "@google/genai";
 import { z } from "zod";
 import { checkClinicalSafety, checkInstructionLeak, checkRewrite } from "@/lib/guardrails";
 
@@ -8,6 +8,30 @@ import { checkClinicalSafety, checkInstructionLeak, checkRewrite } from "@/lib/g
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 // 2.5-series models are only served to keys that used them before; new keys need a current model.
 export const MODEL = process.env.GEMINI_MODEL || "gemini-3.8-flash";
+// Used only when the main model is overloaded or unavailable, so a busy moment doesn't break the demo.
+const FALLBACK_MODEL = process.env.GEMINI_FALLBACK_MODEL || "gemini-3.6-flash";
+const RETRYABLE = new Set([429, 500, 503]);
+
+// Retries transient errors with backoff, then tries the fallback model once. Non-transient errors throw at once.
+async function generate(params: Omit<GenerateContentParameters, "model">) {
+  let lastError: unknown;
+  for (const [model, delays] of [
+    [MODEL, [0, 800, 2000]],
+    [FALLBACK_MODEL, [0]],
+  ] as const) {
+    for (const delay of delays) {
+      if (delay) await new Promise((r) => setTimeout(r, delay));
+      try {
+        return { response: await ai.models.generateContent({ ...params, model }), model };
+      } catch (error) {
+        if (!(error instanceof ApiError) || !RETRYABLE.has(error.status)) throw error;
+        console.warn(`[rewriter] ${model} returned ${error.status}; retrying`);
+        lastError = error;
+      }
+    }
+  }
+  throw lastError;
+}
 
 export const READING_LEVEL_GUIDE: Record<string, string> = {
   simple: "about a 4th-grade reading level: short sentences, everyday words, no jargon",
@@ -41,6 +65,8 @@ const ExplanationSchema = z.object({
 const BackTranslationSchema = z.object({ paragraphs: z.array(z.string()) });
 
 export type RewriteResult = {
+  // The model that actually produced the draft (the fallback, if the main model was unavailable).
+  model: string;
   paragraphs: string[];
   omitted: string[];
   backTranslation: string[] | null;
@@ -50,10 +76,9 @@ export type RewriteResult = {
 // Rewrites source text and runs every check. Any failure means the draft must not be shown to anyone.
 // Throws the SDK's ApiError on transport/API problems so callers can map status codes.
 export async function rewrite(source: string[], languageName: string, readingLevel: string): Promise<RewriteResult> {
-  const result: RewriteResult = { paragraphs: [], omitted: [], backTranslation: null, failures: [] };
+  const result: RewriteResult = { model: MODEL, paragraphs: [], omitted: [], backTranslation: null, failures: [] };
 
-  const response = await ai.models.generateContent({
-    model: MODEL,
+  const { response, model } = await generate({
     contents: `Approved text:\n<approved_text>\n${source.join("\n\n")}\n</approved_text>\n\nRewrite it in ${languageName} at ${READING_LEVEL_GUIDE[readingLevel]}.`,
     config: {
       systemInstruction: SYSTEM,
@@ -64,6 +89,7 @@ export async function rewrite(source: string[], languageName: string, readingLev
     },
   });
 
+  result.model = model;
   const blockReason = response.promptFeedback?.blockReason;
   const explanation = ExplanationSchema.safeParse(safeJson(response.text));
   if (blockReason) {
@@ -93,8 +119,7 @@ export async function rewrite(source: string[], languageName: string, readingLev
 // Returns null rather than failing the request: the draft can still be reviewed without it.
 async function backTranslate(paragraphs: string[]): Promise<string[] | null> {
   try {
-    const response = await ai.models.generateContent({
-      model: MODEL,
+    const { response } = await generate({
       contents: `<text>\n${paragraphs.join("\n\n")}\n</text>`,
       config: {
         systemInstruction:
