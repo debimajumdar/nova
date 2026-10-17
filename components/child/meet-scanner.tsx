@@ -17,14 +17,28 @@ const CARDS = [
 
 export function MeetScanner({ name, done, onComplete }: { name: string; done: boolean; onComplete: () => void }) {
   const [i, setI] = useState(0);
+  // Tapping the picture slides the bed in or out; moving to another card resets it.
+  const [bedOverride, setBedOverride] = useState<boolean | null>(null);
   const card = CARDS[i];
+  const bedIn = bedOverride ?? card.bedIn;
+  const go = (next: number) => {
+    setI(next);
+    setBedOverride(null);
+  };
   const last = i === CARDS.length - 1;
 
   return (
     <div className="space-y-5">
-      <div className="flex justify-center rounded-2xl bg-muted/60 p-4">
-        <ScannerArt bedIn={card.bedIn} />
-      </div>
+      <button
+        onClick={() => setBedOverride(!bedIn)}
+        className="group flex w-full flex-col items-center rounded-2xl bg-muted/60 p-4 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+        aria-label={bedIn ? "Slide the bed out of the scanner" : "Slide the bed into the scanner"}
+      >
+        <ScannerArt bedIn={bedIn} />
+        <span className="mt-1 rounded-full bg-card px-3 py-1 text-sm font-bold text-primary transition-transform group-hover:scale-105">
+          👆 Tap to slide the bed {bedIn ? "out" : "in"}
+        </span>
+      </button>
 
       <div className="min-h-24" aria-live="polite">
         <AnimatePresence mode="wait">
@@ -41,11 +55,11 @@ export function MeetScanner({ name, done, onComplete }: { name: string; done: bo
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <Button variant="outline" className="h-12 px-4 text-base" disabled={i === 0} onClick={() => setI(i - 1)}>
+        <Button variant="outline" className="h-12 px-4 text-base" disabled={i === 0} onClick={() => go(i - 1)}>
           <ArrowLeft /> Back
         </Button>
         {!last && (
-          <Button className="h-12 px-5 text-base" onClick={() => setI(i + 1)}>
+          <Button className="h-12 px-5 text-base" onClick={() => go(i + 1)}>
             Next <ArrowRight />
           </Button>
         )}

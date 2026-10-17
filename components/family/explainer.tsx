@@ -15,7 +15,7 @@ import { useRealtime } from "@/lib/use-realtime";
 
 // Lets a parent re-read approved content at their reading level and in their language.
 // AI versions are only shown after a clinician approves them.
-export function Explainer(props: { step: ExplainableStep; defaultLevel: ReadingLevelValue; familyToken: string }) {
+export function Explainer(props: { step: ExplainableStep; defaultLevel: ReadingLevelValue }) {
   const [level, setLevel] = useState<ReadingLevelValue>(props.defaultLevel);
   const [language, setLanguage] = useState<LanguageValue>("en");
   const [result, setResult] = useState<ExplainResponse | null>(null);
@@ -34,7 +34,6 @@ export function Explainer(props: { step: ExplainableStep; defaultLevel: ReadingL
           step: props.step,
           readingLevel: choice.level,
           language: choice.language,
-          familyToken: props.familyToken,
         }),
       });
       const body = await res.json();

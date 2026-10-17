@@ -68,6 +68,7 @@ export type AiRewrite = {
   model: string;
   paragraphs: string[] | null;
   omitted_or_uncertain: string[];
+  back_translation: string[] | null;
   guardrail_failures: string[];
   status: "pending" | "approved" | "rejected" | "blocked";
   requested_by_patient: string | null;

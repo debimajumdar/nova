@@ -8,6 +8,7 @@ import { A11yPanel } from "@/components/a11y-panel";
 import { ReadinessRing } from "@/components/readiness";
 import { Button } from "@/components/ui/button";
 import { StepContent } from "@/components/family/step-content";
+import { KidAdventure } from "@/components/child/kid-adventure";
 import { BARRIER_LABELS, relativeVisit, visitDate } from "@/lib/format";
 import { loadFamily, pctFromProgress, reportBarrier, setStepDone } from "@/lib/queries";
 import type { BarrierKind, PathwayStep } from "@/lib/types";
@@ -63,6 +64,11 @@ export function FamilyView({ token }: { token: string }) {
     );
   }
 
+  const reportFromStep = async (kind: BarrierKind, note: string) => {
+    await reportBarrier(patient.id, kind, note, "app");
+    refresh();
+  };
+
   const toggle = async (step: PathwayStep, value: boolean) => {
     await setStepDone(assignment.id, step.key, value);
     if (value) setOpen(null);
@@ -88,41 +94,54 @@ export function FamilyView({ token }: { token: string }) {
         </div>
       </motion.section>
 
-      {(["child", "parent"] as const).map((audience) => (
-        <section key={audience} className="mt-8" aria-labelledby={`${audience}-heading`}>
-          <h2 id={`${audience}-heading`} className="text-xl font-bold">
-            {audience === "child" ? `For ${child}` : "For you"}
-          </h2>
-          <p className="text-muted-foreground">
-            {audience === "child" ? "Explore these together. They're short and fun." : "A few things to do before the visit."}
-          </p>
-          <ol className="mt-4 space-y-3">
-            {family.steps
-              .filter((s) => s.audience === audience)
-              .map((step) => (
-                <StepCard
-                  key={step.key}
+      <KidAdventure
+        token={token}
+        name={child}
+        steps={family.steps.filter((s) => s.audience === "child")}
+        done={done}
+        openKey={family.steps.some((s) => s.key === open && s.audience === "child") ? open : null}
+        onOpen={setOpen}
+        onComplete={(step) => toggle(step, true)}
+        renderActivity={(step, onComplete) => (
+          <StepContent
+            step={step}
+            patient={patient}
+            done={done.has(step.key)}
+            onComplete={onComplete}
+            onUndo={() => toggle(step, false)}
+            onReportBarrier={reportFromStep}
+          />
+        )}
+      />
+
+      <section className="mt-10" aria-labelledby="parent-heading">
+        <h2 id="parent-heading" className="text-xl font-bold">
+          For you
+        </h2>
+        <p className="text-muted-foreground">A few things to do before the visit.</p>
+        <ol className="mt-4 space-y-3">
+          {family.steps
+            .filter((s) => s.audience === "parent")
+            .map((step) => (
+              <StepCard
+                key={step.key}
+                step={step}
+                done={done.has(step.key)}
+                open={open === step.key}
+                onOpen={() => setOpen((k) => (k === step.key ? null : step.key))}
+              >
+                <StepContent
                   step={step}
+                  patient={patient}
                   done={done.has(step.key)}
-                  open={open === step.key}
-                  onOpen={() => setOpen((k) => (k === step.key ? null : step.key))}
-                >
-                  <StepContent
-                    step={step}
-                    patient={patient}
-                    done={done.has(step.key)}
-                    onComplete={() => toggle(step, true)}
-                    onUndo={() => toggle(step, false)}
-                    onReportBarrier={async (kind, note) => {
-                      await reportBarrier(patient.id, kind, note, "app");
-                      refresh();
-                    }}
-                  />
-                </StepCard>
-              ))}
-          </ol>
-        </section>
-      ))}
+                  onComplete={() => toggle(step, true)}
+                  onUndo={() => toggle(step, false)}
+                  onReportBarrier={reportFromStep}
+                />
+              </StepCard>
+            ))}
+        </ol>
+      </section>
 
       <BarrierSection
         reported={new Set(family.barriers.map((b) => b.kind))}

@@ -40,7 +40,7 @@ export function StepContent(props: Props) {
         <Body done={props.done} onUndo={props.onUndo}>
           <Paragraphs items={UNDERSTAND_MRI} />
           <Source />
-          <Explainer step="understand-mri" defaultLevel={props.patient.reading_level} familyToken={props.patient.family_token} />
+          <Explainer step="understand-mri" defaultLevel={props.patient.reading_level} />
           <DoneButton {...props} label="I understand" />
         </Body>
       );
@@ -54,7 +54,7 @@ export function StepContent(props: Props) {
               <li key={t}>{t}</li>
             ))}
           </ul>
-          <Explainer step="prep-instructions" defaultLevel={props.patient.reading_level} familyToken={props.patient.family_token} />
+          <Explainer step="prep-instructions" defaultLevel={props.patient.reading_level} />
           <DoneButton {...props} label="I've read these" />
         </Body>
       );
